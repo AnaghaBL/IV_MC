@@ -36,7 +36,7 @@ export const AppShell = () => {
             <span>DripSense AI</span>
           </div>
           <div className="hidden gap-2 md:flex">
-            {["All Wards", "ICU", "Surgical", "General"].map((ward) => (
+            {["All Wards", "ICU", "Surgical Ward", "General Ward"].map((ward) => (
               <button className="focusable rounded-full px-3 py-1.5 text-sm text-medical-muted hover:bg-medical-blue-light hover:text-medical-blue dark:hover:bg-zinc-800" key={ward}>{ward}</button>
             ))}
           </div>

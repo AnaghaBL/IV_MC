@@ -2,15 +2,15 @@ truncate shift_handoffs, nurse_assignments, audit_logs, alerts, predictions, tel
 
 with hospital as (
   insert into hospitals (id, name, address, logo_url)
-  values ('00000000-0000-4000-8000-000000000001', 'City General Hospital', '42 Care Avenue, Metro District', '/logo.svg')
+  values ('00000000-0000-4000-8000-000000000001', 'CityCare Multispeciality Hospital', '42 Care Avenue, Bengaluru', '/logo.svg')
   returning id
 ),
 wards_seed as (
   insert into wards (id, hospital_id, name, type, floor, bed_count)
   values
   ('10000000-0000-4000-8000-000000000001', (select id from hospital), 'ICU', 'ICU', '4', 8),
-  ('10000000-0000-4000-8000-000000000002', (select id from hospital), 'Surgical', 'SURGICAL', '3', 16),
-  ('10000000-0000-4000-8000-000000000003', (select id from hospital), 'General', 'GENERAL', '2', 24)
+  ('10000000-0000-4000-8000-000000000002', (select id from hospital), 'Surgical Ward', 'SURGICAL', '3', 16),
+  ('10000000-0000-4000-8000-000000000003', (select id from hospital), 'General Ward', 'GENERAL', '2', 24)
   returning id
 ),
 beds_seed as (
@@ -25,27 +25,27 @@ beds_seed as (
 staff_seed as (
   insert into staff (id, hospital_id, name, email, password_hash, role, ward_assignments, shift)
   values
-  ('30000000-0000-4000-8000-000000000001', (select id from hospital), 'Avery Shah', 'admin@dripsense.local', crypt('Password123!', gen_salt('bf')), 'ADMIN', array['10000000-0000-4000-8000-000000000001'::uuid,'10000000-0000-4000-8000-000000000002'::uuid], 'MORNING'),
-  ('30000000-0000-4000-8000-000000000002', (select id from hospital), 'Dr. Meera Rao', 'doctor@dripsense.local', crypt('Password123!', gen_salt('bf')), 'DOCTOR', array['10000000-0000-4000-8000-000000000001'::uuid], 'MORNING'),
-  ('30000000-0000-4000-8000-000000000003', (select id from hospital), 'Nurse Liam Carter', 'nurse1@dripsense.local', crypt('Password123!', gen_salt('bf')), 'NURSE', array['10000000-0000-4000-8000-000000000001'::uuid,'10000000-0000-4000-8000-000000000002'::uuid], 'EVENING'),
-  ('30000000-0000-4000-8000-000000000004', (select id from hospital), 'Nurse Priya Menon', 'nurse2@dripsense.local', crypt('Password123!', gen_salt('bf')), 'NURSE', array['10000000-0000-4000-8000-000000000003'::uuid], 'NIGHT')
+  ('30000000-0000-4000-8000-000000000001', (select id from hospital), 'Dr. Nandini Shah', 'admin@dripsense.local', crypt('Password123!', gen_salt('bf')), 'ADMIN', array['10000000-0000-4000-8000-000000000001'::uuid,'10000000-0000-4000-8000-000000000002'::uuid], 'MORNING'),
+  ('30000000-0000-4000-8000-000000000002', (select id from hospital), 'Dr. Sameer Mehta', 'doctor@dripsense.local', crypt('Password123!', gen_salt('bf')), 'DOCTOR', array['10000000-0000-4000-8000-000000000001'::uuid], 'MORNING'),
+  ('30000000-0000-4000-8000-000000000003', (select id from hospital), 'Nurse Lakshmi Menon', 'nurse1@dripsense.local', crypt('Password123!', gen_salt('bf')), 'NURSE', array['10000000-0000-4000-8000-000000000001'::uuid,'10000000-0000-4000-8000-000000000002'::uuid], 'EVENING'),
+  ('30000000-0000-4000-8000-000000000004', (select id from hospital), 'Nurse Asha Thomas', 'nurse2@dripsense.local', crypt('Password123!', gen_salt('bf')), 'NURSE', array['10000000-0000-4000-8000-000000000003'::uuid], 'NIGHT')
   returning id
 ),
 patients_seed as (
   insert into patients (id, hospital_id, bed_id, name, mrn, age, gender, diagnosis, attending_doctor_id, primary_nurse_id, admission_date)
   values
-  ('40000000-0000-4000-8000-000000000001', (select id from hospital), '20000000-0000-4000-8000-000000000001', 'Elena Brooks', 'MRN-240001', 68, 'Female', 'Sepsis observation', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '3 days'),
-  ('40000000-0000-4000-8000-000000000002', (select id from hospital), '20000000-0000-4000-8000-000000000002', 'Marcus Chen', 'MRN-240002', 54, 'Male', 'Post-op monitoring', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '1 day'),
-  ('40000000-0000-4000-8000-000000000003', (select id from hospital), '20000000-0000-4000-8000-000000000003', 'Samira Khan', 'MRN-240003', 37, 'Female', 'Pneumonia', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '5 days'),
-  ('40000000-0000-4000-8000-000000000004', (select id from hospital), '20000000-0000-4000-8000-000000000004', 'Noah Williams', 'MRN-240004', 75, 'Male', 'CHF exacerbation', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '2 days'),
-  ('40000000-0000-4000-8000-000000000005', (select id from hospital), '20000000-0000-4000-8000-000000000005', 'Grace Patel', 'MRN-240005', 29, 'Female', 'Hyperemesis', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '10 hours'),
-  ('40000000-0000-4000-8000-000000000006', (select id from hospital), '20000000-0000-4000-8000-000000000006', 'Owen Miller', 'MRN-240006', 61, 'Male', 'Cellulitis', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '4 days'),
-  ('40000000-0000-4000-8000-000000000007', (select id from hospital), '20000000-0000-4000-8000-000000000007', 'Mina Alvarez', 'MRN-240007', 46, 'Female', 'Surgical recovery', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '7 hours'),
-  ('40000000-0000-4000-8000-000000000008', (select id from hospital), '20000000-0000-4000-8000-000000000008', 'Theo Brown', 'MRN-240008', 82, 'Male', 'Dehydration', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '6 days'),
-  ('40000000-0000-4000-8000-000000000009', (select id from hospital), '20000000-0000-4000-8000-000000000009', 'Iris Novak', 'MRN-240009', 43, 'Female', 'Vancomycin infusion', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000004', now() - interval '9 hours'),
-  ('40000000-0000-4000-8000-000000000010', (select id from hospital), '20000000-0000-4000-8000-000000000010', 'Dev Singh', 'MRN-240010', 57, 'Male', 'Anticoagulation', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000004', now() - interval '12 hours'),
-  ('40000000-0000-4000-8000-000000000011', (select id from hospital), '20000000-0000-4000-8000-000000000011', 'Hana Ito', 'MRN-240011', 33, 'Female', 'Electrolyte replacement', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000004', now() - interval '16 hours'),
-  ('40000000-0000-4000-8000-000000000012', (select id from hospital), '20000000-0000-4000-8000-000000000012', 'Robert Ellis', 'MRN-240012', 70, 'Male', 'Oncology hydration', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000004', now() - interval '2 days')
+  ('40000000-0000-4000-8000-000000000001', (select id from hospital), '20000000-0000-4000-8000-000000000001', 'Ananya Rao', 'MRN-240001', 68, 'Female', 'Sepsis observation', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '3 days'),
+  ('40000000-0000-4000-8000-000000000002', (select id from hospital), '20000000-0000-4000-8000-000000000002', 'Arjun Menon', 'MRN-240002', 54, 'Male', 'Post-op monitoring', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '1 day'),
+  ('40000000-0000-4000-8000-000000000003', (select id from hospital), '20000000-0000-4000-8000-000000000003', 'Meera Iyer', 'MRN-240003', 37, 'Female', 'Pneumonia', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '5 days'),
+  ('40000000-0000-4000-8000-000000000004', (select id from hospital), '20000000-0000-4000-8000-000000000004', 'Rohan Sharma', 'MRN-240004', 75, 'Male', 'CHF exacerbation', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '2 days'),
+  ('40000000-0000-4000-8000-000000000005', (select id from hospital), '20000000-0000-4000-8000-000000000005', 'Kavya Nair', 'MRN-240005', 29, 'Female', 'Hyperemesis', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '10 hours'),
+  ('40000000-0000-4000-8000-000000000006', (select id from hospital), '20000000-0000-4000-8000-000000000006', 'Aditya Kulkarni', 'MRN-240006', 61, 'Male', 'Cellulitis', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '4 days'),
+  ('40000000-0000-4000-8000-000000000007', (select id from hospital), '20000000-0000-4000-8000-000000000007', 'Priya Reddy', 'MRN-240007', 46, 'Female', 'Surgical recovery', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '7 hours'),
+  ('40000000-0000-4000-8000-000000000008', (select id from hospital), '20000000-0000-4000-8000-000000000008', 'Vikram Singh', 'MRN-240008', 82, 'Male', 'Dehydration', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000003', now() - interval '6 days'),
+  ('40000000-0000-4000-8000-000000000009', (select id from hospital), '20000000-0000-4000-8000-000000000009', 'Neha Joshi', 'MRN-240009', 43, 'Female', 'Vancomycin infusion', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000004', now() - interval '9 hours'),
+  ('40000000-0000-4000-8000-000000000010', (select id from hospital), '20000000-0000-4000-8000-000000000010', 'Saanvi Patel', 'MRN-240010', 57, 'Female', 'Anticoagulation', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000004', now() - interval '12 hours'),
+  ('40000000-0000-4000-8000-000000000011', (select id from hospital), '20000000-0000-4000-8000-000000000011', 'Aarav Deshmukh', 'MRN-240011', 33, 'Male', 'Electrolyte replacement', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000004', now() - interval '16 hours'),
+  ('40000000-0000-4000-8000-000000000012', (select id from hospital), '20000000-0000-4000-8000-000000000012', 'Fatima Khan', 'MRN-240012', 70, 'Female', 'Oncology hydration', '30000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000004', now() - interval '2 days')
   returning id
 ),
 devices_seed as (
@@ -80,7 +80,7 @@ cross join generate_series(0, 23) m;
 
 insert into alerts (patient_id, device_id, session_id, type, severity, message, triggered_at, escalation_level)
 values
-('40000000-0000-4000-8000-000000000001','50000000-0000-4000-8000-000000000002','60000000-0000-4000-8000-000000000001','AIR_BUBBLE','CRITICAL','Air bubble detected by IR sensor', now() - interval '3 minutes', 1),
+('40000000-0000-4000-8000-000000000001','50000000-0000-4000-8000-000000000002','60000000-0000-4000-8000-000000000001','AIR_BUBBLE','CRITICAL','Air-in-line / embolism risk detected by IR sensor', now() - interval '3 minutes', 1),
 ('40000000-0000-4000-8000-000000000002','50000000-0000-4000-8000-000000000003','60000000-0000-4000-8000-000000000002','OCCLUSION_PREDICTED','WARNING','Occlusion predicted in 14 minutes', now() - interval '8 minutes', 2),
 ('40000000-0000-4000-8000-000000000003','50000000-0000-4000-8000-000000000005','60000000-0000-4000-8000-000000000003','DEVICE_OFFLINE','INFO','Camera module has not reported for 80 seconds', now() - interval '10 minutes', 1);
 

@@ -29,7 +29,7 @@ export default function Dashboard() {
     <div className="p-4 md:p-6">
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Central Hospital Dashboard</h1>
+          <h1 className="text-2xl font-bold">CityCare Multispeciality Hospital</h1>
           <p className="text-sm text-medical-muted">Live ward telemetry, predictive risk, and infusion safety state.</p>
         </div>
         <div className="flex flex-wrap gap-2">

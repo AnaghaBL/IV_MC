@@ -111,7 +111,7 @@ cd dripsense-ai
 python tools\serial_bubble_bridge.py --port COM5
 ```
 
-Use the COM port shown in Arduino IDE. The bridge posts `raw`, `baseline`, and `alarmActive` to `POST /api/telemetry`; the Elena Brooks monitor then updates the air-line sensor values, bubble status, and alert state.
+Use the COM port shown in Arduino IDE. The bridge posts `raw`, `baseline`, and `alarmActive` to `POST /api/telemetry`; the Ananya Rao monitor then updates the air-line sensor values, bubble status, and alert state.
 
 For the production API, include the device key:
 

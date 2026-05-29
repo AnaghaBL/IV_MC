@@ -22,7 +22,7 @@ const staff = {
   id: "30000000-0000-4000-8000-000000000001",
   hospitalId: "00000000-0000-4000-8000-000000000001",
   email: "admin@dripsense.local",
-  name: "Avery Shah",
+  name: "Dr. Nandini Shah",
   role: "ADMIN"
 };
 
@@ -116,7 +116,7 @@ interface MockAlert {
 const patients: MockPatient[] = [
   {
     id: "40000000-0000-4000-8000-000000000001",
-    name: "Elena Brooks",
+    name: "Ananya Rao",
     mrn: "MRN-240001",
     diagnosis: "Sepsis observation",
     room_number: "ICU-01",
@@ -139,7 +139,7 @@ const patients: MockPatient[] = [
   },
   {
     id: "40000000-0000-4000-8000-000000000002",
-    name: "Marcus Chen",
+    name: "Arjun Menon",
     mrn: "MRN-240002",
     diagnosis: "Post-op monitoring",
     room_number: "ICU-02",
@@ -162,7 +162,7 @@ const patients: MockPatient[] = [
   },
   {
     id: "40000000-0000-4000-8000-000000000003",
-    name: "Samira Khan",
+    name: "Meera Iyer",
     mrn: "MRN-240003",
     diagnosis: "Pneumonia",
     room_number: "ICU-03",
@@ -185,13 +185,13 @@ const patients: MockPatient[] = [
   },
   ...Array.from({ length: 9 }, (_, index) => ({
     id: `40000000-0000-4000-8000-${String(index + 4).padStart(12, "0")}`,
-    name: ["Grace Patel", "Owen Miller", "Mina Alvarez", "Theo Brown", "Iris Novak", "Dev Singh", "Hana Ito", "Robert Ellis", "Noah Williams"][index] ?? "Patient",
+    name: ["Rohan Sharma", "Kavya Nair", "Aditya Kulkarni", "Priya Reddy", "Vikram Singh", "Neha Joshi", "Saanvi Patel", "Aarav Deshmukh", "Fatima Khan"][index] ?? "Patient",
     mrn: `MRN-2400${index + 4}`.padEnd(10, "0"),
     diagnosis: "Infusion monitoring",
     room_number: index < 4 ? `S-0${index + 4}` : `G-0${index + 4}`,
     bed_number: `B${index + 4}`,
     ward_id: index < 4 ? "10000000-0000-4000-8000-000000000002" : "10000000-0000-4000-8000-000000000003",
-    ward_name: index < 4 ? "Surgical" : "General",
+    ward_name: index < 4 ? "Surgical Ward" : "General Ward",
     session_id: index < 2 ? `60000000-0000-4000-8000-${String(index + 4).padStart(12, "0")}` : null,
     fluid_type: ["Vancomycin 500mg", "Heparin 5000U", "Normal Saline 0.9%"][index % 3] ?? "Normal Saline 0.9%",
     volume_ml: 500,
@@ -216,7 +216,7 @@ let alerts: MockAlert[] = [
     session_id: patients[0]?.session_id ?? null,
     type: "AIR_BUBBLE",
     severity: "CRITICAL",
-    message: "Air bubble detected by IR sensor",
+    message: "Air-in-line / embolism risk detected by IR sensor",
     triggered_at: new Date(Date.now() - 180_000).toISOString(),
     acknowledged_at: null,
     escalation_level: 1,
