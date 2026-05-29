@@ -45,7 +45,7 @@ export const evaluateTelemetryAlert = async (
       sessionId: telemetry.sessionId,
       type: "AIR_BUBBLE",
       severity: "CRITICAL",
-      message: "Air bubble detected by IR sensor"
+      message: "Air-in-line / embolism risk detected by IR sensor"
     });
   }
   if (telemetry.dpm === 0) {

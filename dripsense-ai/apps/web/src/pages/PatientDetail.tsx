@@ -48,6 +48,7 @@ export default function PatientDetail() {
   const latestFlow = Math.round(asNumber(numberField(latest, "flow_rate_ml_hr")));
   const latestRaw = latestSensorPoint?.raw_sensor ?? numberField(latest, "raw_sensor");
   const latestBaseline = latestSensorPoint?.baseline_sensor ?? numberField(latest, "baseline_sensor");
+  const airLineAlarm = Boolean(latestSensorPoint?.alarm_active ?? latest?.alarm_active);
 
   return (
     <div className="p-4 md:p-6">
@@ -66,6 +67,12 @@ export default function PatientDetail() {
 
       {tab === "Monitor" && patient.data && (
         <>
+          {airLineAlarm && (
+            <section className="mb-4 rounded-lg border-2 border-red-500 bg-red-50 p-4 text-red-900 shadow-sm dark:bg-red-950/30 dark:text-red-100">
+              <div className="flex items-center gap-2 text-lg font-bold"><Siren className="h-5 w-5" /> AIR EMBOLISM RISK DETECTED</div>
+              <p className="mt-1 text-sm">Air-in-line sensor alarm is active. Check IV tubing and stop infusion according to protocol.</p>
+            </section>
+          )}
           <div className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(320px,2fr)]">
             <section className="card overflow-hidden">
               <div className="relative aspect-video overflow-hidden bg-zinc-950">
@@ -86,7 +93,7 @@ export default function PatientDetail() {
                     </div>
                   </div>
                 )}
-                <OpenCvHud dpm={latestDpm} flow={latestFlow} telemetry={telemetryPoints} alarm={Boolean(latest?.alarm_active)} />
+                <OpenCvHud dpm={latestDpm} flow={latestFlow} telemetry={telemetryPoints} alarm={airLineAlarm} />
               </div>
               <div className="flex gap-2 border-t border-medical-border p-3 dark:border-zinc-800">
                 <Button><Expand className="h-4 w-4" /> Fullscreen</Button>
@@ -100,6 +107,7 @@ export default function PatientDetail() {
                 <Metric label="Flow rate" value={`${latestFlow} ml/hr`} />
                 <Metric label="Air-line sensor" value={latestRaw === null ? "Waiting" : latestRaw} />
                 <Metric label="Sensor baseline" value={latestBaseline === null ? "Waiting" : Number(latestBaseline).toFixed(1)} />
+                <Metric label="Air embolism alert" value={airLineAlarm ? "ACTIVE" : "Clear"} />
                 <Metric label="Volume remaining" value={`${session?.volume_ml ?? "N/A"} ml`} />
                 <div>
                   <div className="text-sm font-semibold">Occlusion risk</div>
@@ -176,7 +184,7 @@ const OpenCvHud = ({
     const previous = items[index - 1] ?? value;
     return value < previous * 0.98 ? count + 1 : count;
   }, 0);
-  const status = alarm ? "AIR BUBBLE ALARM" : trendDrops >= 3 ? "OCCLUSION IMMINENT" : dpm <= 0 ? "NO FLOW DETECTED" : "STABLE FLOW";
+  const status = alarm ? "AIR-IN-LINE ALARM" : trendDrops >= 3 ? "OCCLUSION IMMINENT" : dpm <= 0 ? "NO FLOW DETECTED" : "STABLE FLOW";
   const statusClass = alarm || trendDrops >= 3 || dpm <= 0 ? "text-red-400" : "text-green-400";
   const max = Math.max(80, ...values);
   const points = values

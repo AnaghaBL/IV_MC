@@ -372,7 +372,7 @@ app.post("/api/telemetry", (req, res) => {
       session_id: patient.session_id,
       type: "AIR_BUBBLE",
       severity: "CRITICAL",
-      message: "Air bubble detected by IR sensor"
+      message: "Air-in-line / embolism risk detected by IR sensor"
     });
   }
   if (dpm === 0) {
@@ -477,7 +477,7 @@ app.get("/stream", async (_req, res) => {
 
     if (response.ok && response.body) {
       res.setHeader("Content-Type", response.headers.get("content-type") || "multipart/x-mixed-replace;boundary=frame");
-      Readable.fromWeb(response.body).pipe(res);
+      Readable.fromWeb(response.body as unknown as Parameters<typeof Readable.fromWeb>[0]).pipe(res);
       return;
     }
   } catch {
