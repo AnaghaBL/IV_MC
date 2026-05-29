@@ -45,6 +45,8 @@ export default function PatientDetail() {
   const telemetryPoints = telemetry.data?.data ?? [];
   const latestDpm = Math.round(asNumber(numberField(latest, "dpm")));
   const latestFlow = Math.round(asNumber(numberField(latest, "flow_rate_ml_hr")));
+  const latestRaw = numberField(latest, "raw_sensor");
+  const latestBaseline = numberField(latest, "baseline_sensor");
 
   return (
     <div className="p-4 md:p-6">
@@ -95,6 +97,8 @@ export default function PatientDetail() {
               <div className="grid gap-4">
                 <Metric label="Current DPM" value={latestDpm} />
                 <Metric label="Flow rate" value={`${latestFlow} ml/hr`} />
+                <Metric label="Air-line sensor" value={latestRaw === null ? "Waiting" : latestRaw} />
+                <Metric label="Sensor baseline" value={latestBaseline === null ? "Waiting" : Number(latestBaseline).toFixed(1)} />
                 <Metric label="Volume remaining" value={`${session?.volume_ml ?? "N/A"} ml`} />
                 <div>
                   <div className="text-sm font-semibold">Occlusion risk</div>

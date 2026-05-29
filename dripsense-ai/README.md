@@ -94,6 +94,31 @@ python dripsense-ai\tools\opencv_bridge.py --stream http://10.173.4.185/stream -
 
 The website receives the bridge output through `POST /api/telemetry` and updates the monitor, DPM card, and trend graph in real time.
 
+### Air-in-Line Serial Bridge
+
+Upload `hardware/esp32_air_in_line_detector.ino` to the ESP32 connected to the IR air-in-line sensor. The firmware prints Serial Plotter lines such as `Baseline:812.4,Current:790,Alarm:0`.
+
+Install the Python serial dependency once:
+
+```powershell
+pip install pyserial requests
+```
+
+Run the mock API and web app, then start the bridge in a third terminal:
+
+```powershell
+cd dripsense-ai
+python tools\serial_bubble_bridge.py --port COM5
+```
+
+Use the COM port shown in Arduino IDE. The bridge posts `raw`, `baseline`, and `alarmActive` to `POST /api/telemetry`; the Elena Brooks monitor then updates the air-line sensor values, bubble status, and alert state.
+
+For the production API, include the device key:
+
+```powershell
+python tools\serial_bubble_bridge.py --port COM5 --device-key city-general-device-key
+```
+
 Open:
 
 - Web app: `http://localhost:5173`

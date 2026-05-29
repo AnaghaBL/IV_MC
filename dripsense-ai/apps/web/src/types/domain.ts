@@ -77,5 +77,7 @@ export interface TelemetryPoint {
   timestamp: string;
   dpm: string | number | null;
   flow_rate_ml_hr: string | number | null;
+  raw_sensor?: string | number | null;
+  baseline_sensor?: string | number | null;
   alarm_active: boolean;
 }
