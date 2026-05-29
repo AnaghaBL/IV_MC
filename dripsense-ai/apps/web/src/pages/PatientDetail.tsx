@@ -43,10 +43,11 @@ export default function PatientDetail() {
     return ip ? `http://${ip}/stream` : "";
   }, [device]);
   const telemetryPoints = telemetry.data?.data ?? [];
+  const latestSensorPoint = [...telemetryPoints].reverse().find((point) => point.raw_sensor !== null && point.raw_sensor !== undefined);
   const latestDpm = Math.round(asNumber(numberField(latest, "dpm")));
   const latestFlow = Math.round(asNumber(numberField(latest, "flow_rate_ml_hr")));
-  const latestRaw = numberField(latest, "raw_sensor");
-  const latestBaseline = numberField(latest, "baseline_sensor");
+  const latestRaw = latestSensorPoint?.raw_sensor ?? numberField(latest, "raw_sensor");
+  const latestBaseline = latestSensorPoint?.baseline_sensor ?? numberField(latest, "baseline_sensor");
 
   return (
     <div className="p-4 md:p-6">
