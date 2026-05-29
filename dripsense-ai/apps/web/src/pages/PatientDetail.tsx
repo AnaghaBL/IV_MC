@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Camera, Expand, FileImage, PictureInPicture2, RotateCw, Siren } from "lucide-react";
 import { api } from "../services/api";
 import { Button } from "../components/ui/Button";
@@ -30,6 +30,11 @@ export default function PatientDetail() {
   const { id = "" } = useParams();
   const [tab, setTab] = useState<Tab>("Monitor");
   const [streamFailed, setStreamFailed] = useState(false);
+  const [actionMessage, setActionMessage] = useState("");
+  const [note, setNote] = useState("");
+  const [noteSavedAt, setNoteSavedAt] = useState("");
+  const monitorRef = useRef<HTMLElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
   const patient = useQuery({ queryKey: ["patient", id], queryFn: () => api.patient(id), enabled: Boolean(id), refetchInterval: 3000 });
   const history = useQuery({ queryKey: ["patient-history", id], queryFn: () => api.patientHistory(id), enabled: Boolean(id) });
   const alerts = useQuery({ queryKey: ["patient-alerts", id], queryFn: () => api.patientAlerts(id), enabled: Boolean(id) });
@@ -49,6 +54,69 @@ export default function PatientDetail() {
   const latestRaw = latestSensorPoint?.raw_sensor ?? numberField(latest, "raw_sensor");
   const latestBaseline = latestSensorPoint?.baseline_sensor ?? numberField(latest, "baseline_sensor");
   const airLineAlarm = Boolean(latestSensorPoint?.alarm_active ?? latest?.alarm_active);
+  const deviceId = textField(device, "id", "");
+  const deviceCommand = useMutation({
+    mutationFn: (command: string) => api.command(deviceId, command),
+    onSuccess: (result) => setActionMessage(`${result.command} queued`),
+    onError: () => setActionMessage("Device command failed")
+  });
+
+  const requestFullscreen = async () => {
+    if (!monitorRef.current) return;
+    await monitorRef.current.requestFullscreen().catch(() => setActionMessage("Fullscreen is blocked by this browser"));
+  };
+
+  const takeSnapshot = () => {
+    const image = imageRef.current;
+    if (!image) {
+      setActionMessage("No camera frame available");
+      return;
+    }
+
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth || image.clientWidth;
+      canvas.height = image.naturalHeight || image.clientHeight;
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Canvas unavailable");
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const link = document.createElement("a");
+      link.download = `${textField(patient.data, "name", "patient").replaceAll(" ", "-").toLowerCase()}-iv-snapshot.jpg`;
+      link.href = canvas.toDataURL("image/jpeg", 0.92);
+      link.click();
+      setActionMessage("Snapshot downloaded");
+    } catch {
+      setActionMessage("Snapshot blocked by camera stream permissions");
+    }
+  };
+
+  const openPip = async () => {
+    const browserWindow = window as Window & {
+      documentPictureInPicture?: { requestWindow: (options?: { width?: number; height?: number }) => Promise<Window> };
+    };
+
+    try {
+      if (browserWindow.documentPictureInPicture && monitorRef.current) {
+        const pipWindow = await browserWindow.documentPictureInPicture.requestWindow({ width: 420, height: 280 });
+        pipWindow.document.body.style.margin = "0";
+        pipWindow.document.body.style.background = "#09090b";
+        const image = pipWindow.document.createElement("img");
+        image.src = streamUrl;
+        image.alt = "IV monitor picture-in-picture";
+        image.style.width = "100%";
+        image.style.height = "100vh";
+        image.style.objectFit = "contain";
+        pipWindow.document.body.append(image);
+        setActionMessage("PiP opened");
+        return;
+      }
+
+      const popup = window.open(streamUrl, "dripsense-pip", "width=420,height=320,popup=yes");
+      setActionMessage(popup ? "PiP window opened" : "Popup blocked");
+    } catch {
+      setActionMessage("PiP is not supported by this browser");
+    }
+  };
 
   return (
     <div className="p-4 md:p-6">
@@ -74,12 +142,14 @@ export default function PatientDetail() {
             </section>
           )}
           <div className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(320px,2fr)]">
-            <section className="card overflow-hidden">
+            <section className="card overflow-hidden" ref={monitorRef}>
               <div className="relative aspect-video overflow-hidden bg-zinc-950">
                 {streamUrl && !streamFailed ? (
                   <img
+                    ref={imageRef}
                     src={streamUrl}
                     alt="ESP32-CAM live IV drip chamber stream"
+                    crossOrigin="anonymous"
                     className="h-full w-full object-contain"
                     onError={() => setStreamFailed(true)}
                     onLoad={() => setStreamFailed(false)}
@@ -96,10 +166,11 @@ export default function PatientDetail() {
                 <OpenCvHud dpm={latestDpm} flow={latestFlow} telemetry={telemetryPoints} alarm={airLineAlarm} />
               </div>
               <div className="flex gap-2 border-t border-medical-border p-3 dark:border-zinc-800">
-                <Button><Expand className="h-4 w-4" /> Fullscreen</Button>
-                <Button><FileImage className="h-4 w-4" /> Snapshot</Button>
-                <Button><PictureInPicture2 className="h-4 w-4" /> PiP</Button>
+                <Button onClick={requestFullscreen}><Expand className="h-4 w-4" /> Fullscreen</Button>
+                <Button onClick={takeSnapshot}><FileImage className="h-4 w-4" /> Snapshot</Button>
+                <Button onClick={openPip} disabled={!streamUrl}><PictureInPicture2 className="h-4 w-4" /> PiP</Button>
               </div>
+              {actionMessage && <p className="border-t border-medical-border px-3 pb-3 text-sm font-medium text-medical-blue dark:border-zinc-800">{actionMessage}</p>}
             </section>
             <aside className="card p-5">
               <div className="grid gap-4">
@@ -145,14 +216,20 @@ export default function PatientDetail() {
             <Metric label="Firmware" value={textField(device, "firmware_version")} />
             <Metric label="Last seen" value={timeAgo(textField(device, "last_seen", ""))} />
           </div>
-          <div className="mt-4 flex flex-wrap gap-2"><Button><RotateCw className="h-4 w-4" /> Reboot</Button><Button>Test Alert</Button><Button>Recalibrate Sensor</Button></div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button onClick={() => deviceCommand.mutate("reboot")} disabled={!deviceId || deviceCommand.isPending}><RotateCw className="h-4 w-4" /> Reboot</Button>
+            <Button onClick={() => deviceCommand.mutate("test-alert")} disabled={!deviceId || deviceCommand.isPending}>Test Alert</Button>
+            <Button onClick={() => deviceCommand.mutate("recalibrate")} disabled={!deviceId || deviceCommand.isPending}>Recalibrate Sensor</Button>
+          </div>
+          {actionMessage && <p className="mt-3 text-sm font-medium text-medical-blue">{actionMessage}</p>}
         </section>
       )}
       {tab === "Notes" && (
         <section className="card p-5">
           <h2 className="text-lg font-semibold">Nurse Notes</h2>
-          <textarea className="focusable mt-4 min-h-32 w-full rounded-md border border-medical-border p-3 dark:border-zinc-700 dark:bg-zinc-950" placeholder="Document intervention or handoff note" />
-          <Button className="mt-3" variant="primary">Submit note</Button>
+          <textarea value={note} onChange={(event) => setNote(event.target.value)} className="focusable mt-4 min-h-32 w-full rounded-md border border-medical-border p-3 dark:border-zinc-700 dark:bg-zinc-950" placeholder="Document intervention or handoff note" />
+          <Button className="mt-3" variant="primary" disabled={!note.trim()} onClick={() => setNoteSavedAt(new Date().toLocaleString())}>Submit note</Button>
+          {noteSavedAt && <p className="mt-3 text-sm font-medium text-medical-blue">Note saved locally at {noteSavedAt}</p>}
         </section>
       )}
     </div>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, Droplets, Gauge, HeartPulse, Search, Wifi } from "lucide-react";
 import { api } from "../services/api";
 import { PatientCard } from "../components/patient/PatientCard";
@@ -8,9 +9,23 @@ import { asNumber } from "../utils/format";
 
 export default function Dashboard() {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [sortBy, setSortBy] = useState("severity");
+  const [searchParams] = useSearchParams();
+  const wardFilter = searchParams.get("ward");
   const patients = useQuery({ queryKey: ["patients", search], queryFn: () => api.patients(search ? `?search=${encodeURIComponent(search)}` : "") });
   const alerts = useQuery({ queryKey: ["alerts"], queryFn: api.alerts });
-  const data = patients.data?.data ?? [];
+  const data = useMemo(() => {
+    const filtered = (patients.data?.data ?? [])
+      .filter((patient) => !wardFilter || patient.ward_name === wardFilter)
+      .filter((patient) => statusFilter === "All" || patientStatus(patient) === statusFilter);
+    return [...filtered].sort((a, b) => {
+      if (sortBy === "name") return a.name.localeCompare(b.name);
+      if (sortBy === "room") return `${a.room_number}${a.bed_number}`.localeCompare(`${b.room_number}${b.bed_number}`);
+      if (sortBy === "flow") return asNumber(b.flow_rate_ml_hr) - asNumber(a.flow_rate_ml_hr);
+      return severityRank(patientStatus(b)) - severityRank(patientStatus(a));
+    });
+  }, [patients.data?.data, sortBy, statusFilter, wardFilter]);
   const summary = useMemo(() => {
     const critical = alerts.data?.data.filter((alert) => alert.severity === "CRITICAL").length ?? 0;
     const bubbles = alerts.data?.data.filter((alert) => alert.type === "AIR_BUBBLE").length ?? 0;
@@ -33,7 +48,11 @@ export default function Dashboard() {
           <p className="text-sm text-medical-muted">Live ward telemetry, predictive risk, and infusion safety state.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {["All", "Stable", "Attention", "Critical", "Offline"].map((status) => <Badge key={status}>{status}</Badge>)}
+          {["All", "Stable", "Attention", "Critical", "Offline"].map((status) => (
+            <button key={status} onClick={() => setStatusFilter(status)}>
+              <Badge tone={statusFilter === status ? "blue" : "gray"}>{status}</Badge>
+            </button>
+          ))}
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -57,7 +76,12 @@ export default function Dashboard() {
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-medical-muted" />
             <input value={search} onChange={(event) => setSearch(event.target.value)} className="focusable h-10 w-full rounded-md border border-medical-border pl-9 pr-3 dark:border-zinc-700 dark:bg-zinc-950" placeholder="Search name or MRN" />
           </label>
-          <select className="focusable h-10 rounded-md border border-medical-border px-3 dark:border-zinc-700 dark:bg-zinc-950"><option>Sort by severity</option><option>Name</option><option>Room</option><option>Flow rate</option></select>
+          <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="focusable h-10 rounded-md border border-medical-border px-3 dark:border-zinc-700 dark:bg-zinc-950">
+            <option value="severity">Sort by severity</option>
+            <option value="name">Name</option>
+            <option value="room">Room</option>
+            <option value="flow">Flow rate</option>
+          </select>
         </div>
       </div>
       {patients.isLoading && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 8 }, (_, i) => <div key={i} className="card h-56 animate-pulse bg-zinc-100 dark:bg-zinc-900" />)}</div>}
@@ -69,3 +93,12 @@ export default function Dashboard() {
     </div>
   );
 }
+
+const patientStatus = (patient: { is_online: boolean | null; bubble_alarm: boolean; risk_score: string | number; dpm: string | number }) => {
+  if (!patient.is_online) return "Offline";
+  if (patient.bubble_alarm || asNumber(patient.risk_score) >= 80) return "Critical";
+  if (asNumber(patient.dpm) <= 20) return "Attention";
+  return "Stable";
+};
+
+const severityRank = (status: string) => ({ Critical: 4, Attention: 3, Offline: 2, Stable: 1, All: 0 })[status] ?? 0;

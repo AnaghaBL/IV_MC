@@ -32,6 +32,25 @@ const request = async <T>(path: string, options: RequestInit = {}): Promise<T> =
   return response.json() as Promise<T>;
 };
 
+const download = async (path: string, filename: string) => {
+  const headers = new Headers();
+  if (accessToken) headers.set("authorization", `Bearer ${accessToken}`);
+  const response = await fetch(`${API_URL}${path}`, { headers, credentials: "include" });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({ error: "Download failed" }))) as { error?: string };
+    throw new Error(body.error ?? "Download failed");
+  }
+  const blob = await response.blob();
+  const href = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = href;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(href);
+};
+
 export const api = {
   login: (payload: { email: string; password: string; remember?: boolean }) =>
     request<AuthResponse>("/api/auth/login", { method: "POST", body: JSON.stringify(payload) }),
@@ -47,6 +66,9 @@ export const api = {
   acknowledgeAlert: (id: string, note?: string) => request<AlertRecord>(`/api/alerts/${id}/acknowledge`, { method: "PATCH", body: JSON.stringify({ note }) }),
   resolveAlert: (id: string) => request<AlertRecord>(`/api/alerts/${id}/resolve`, { method: "PATCH" }),
   devices: () => request<ListResponse<DeviceRecord>>("/api/devices"),
+  downloadPatientReport: (id: string, filename: string) => download(`/api/reports/patient/${id}/download`, filename),
+  sendPatientReport: (id: string, target: "doctor" | "contact" | "both") =>
+    request<{ ok: boolean; status: string; recipients: Array<{ type: string; name: string; destination: string }> }>(`/api/reports/patient/${id}/send`, { method: "POST", body: JSON.stringify({ target }) }),
   analytics: (name: "ward-summary" | "alert-trends" | "device-uptime" | "infusion-stats") =>
     request<ListResponse<Record<string, unknown>>>(`/api/analytics/${name}`),
   command: (id: string, command: string) => request<{ queued: boolean; command: string }>(`/api/devices/${id}/command`, { method: "POST", body: JSON.stringify({ command }) })

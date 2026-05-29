@@ -23,6 +23,7 @@ router.get("/", asyncHandler(async (req, res) => {
   const search = typeof req.query.search === "string" ? `%${req.query.search}%` : null;
   const result = await query(
     `select p.*, b.bed_number, b.room_number, w.id as ward_id, w.name as ward_name,
+      doctor.name as attending_doctor, doctor.email as attending_doctor_email, nurse.name as primary_nurse,
       s.id as session_id, s.fluid_type, s.volume_ml, s.rate_ml_hr, s.started_at,
       d.id as device_id, d.ip_address, d.is_online, d.wifi_rssi, d.battery_level,
       coalesce(t.dpm, 0) as dpm, coalesce(t.flow_rate_ml_hr, s.rate_ml_hr, 0) as flow_rate_ml_hr,
@@ -31,6 +32,8 @@ router.get("/", asyncHandler(async (req, res) => {
      from patients p
      join beds b on b.id = p.bed_id
      join wards w on w.id = b.ward_id
+     left join staff doctor on doctor.id = p.attending_doctor_id
+     left join staff nurse on nurse.id = p.primary_nurse_id
      left join infusion_sessions s on s.patient_id = p.id and s.status = 'ACTIVE'
      left join devices d on d.id = s.device_id
      left join lateral (
@@ -38,7 +41,7 @@ router.get("/", asyncHandler(async (req, res) => {
      ) t on true
      left join alerts a on a.patient_id = p.id and a.is_resolved = false
      where p.status = $1 and ($2::uuid is null or w.id = $2) and ($3::text is null or p.name ilike $3 or p.mrn ilike $3)
-     group by p.id,b.bed_number,b.room_number,w.id,w.name,s.id,d.id,t.id
+     group by p.id,b.bed_number,b.room_number,w.id,w.name,doctor.name,doctor.email,nurse.name,s.id,d.id,t.id
      order by risk_score desc, b.room_number asc`,
     [status, ward, search]
   );

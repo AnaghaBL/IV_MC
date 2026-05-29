@@ -22,6 +22,18 @@ export interface PatientCardRecord {
   id: string;
   name: string;
   mrn: string;
+  age: number;
+  gender: string;
+  diagnosis: string;
+  attending_doctor?: string | null;
+  attending_doctor_email?: string | null;
+  primary_nurse?: string | null;
+  first_contact_name?: string | null;
+  first_contact_email?: string | null;
+  first_contact_phone?: string | null;
+  allergies?: string | null;
+  previous_results?: string | null;
+  prescriptions?: string | null;
   room_number: string;
   bed_number: string;
   ward_id: string;

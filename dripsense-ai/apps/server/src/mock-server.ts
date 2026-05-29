@@ -8,6 +8,7 @@ import cors from "cors";
 import express from "express";
 import { Server } from "socket.io";
 import { env } from "./config/env.js";
+import { createPdfBuffer, type PdfSection } from "./services/pdf.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -50,7 +51,18 @@ interface MockPatient {
   id: string;
   name: string;
   mrn: string;
+  age: number;
+  gender: string;
   diagnosis: string;
+  attending_doctor: string;
+  attending_doctor_email: string;
+  primary_nurse: string;
+  first_contact_name: string;
+  first_contact_email: string;
+  first_contact_phone: string;
+  allergies: string;
+  previous_results: string;
+  prescriptions: string;
   room_number: string;
   bed_number: string;
   ward_id: string;
@@ -118,7 +130,18 @@ const patients: MockPatient[] = [
     id: "40000000-0000-4000-8000-000000000001",
     name: "Ananya Rao",
     mrn: "MRN-240001",
+    age: 68,
+    gender: "Female",
     diagnosis: "Sepsis observation",
+    attending_doctor: "Dr. Sameer Mehta",
+    attending_doctor_email: "doctor@dripsense.local",
+    primary_nurse: "Nurse Lakshmi Menon",
+    first_contact_name: "Ravi Rao",
+    first_contact_email: "ravi.rao@example.com",
+    first_contact_phone: "+91 98765 43210",
+    allergies: "Penicillin allergy noted.",
+    previous_results: "CBC: raised WBC. Lactate trend reviewed. Blood culture pending.",
+    prescriptions: "Normal Saline 0.9% at 95 ml/hr. Continue antibiotics as per sepsis protocol.",
     room_number: "ICU-01",
     bed_number: "B1",
     ward_id: "10000000-0000-4000-8000-000000000001",
@@ -141,7 +164,18 @@ const patients: MockPatient[] = [
     id: "40000000-0000-4000-8000-000000000002",
     name: "Arjun Menon",
     mrn: "MRN-240002",
+    age: 54,
+    gender: "Male",
     diagnosis: "Post-op monitoring",
+    attending_doctor: "Dr. Sameer Mehta",
+    attending_doctor_email: "doctor@dripsense.local",
+    primary_nurse: "Nurse Lakshmi Menon",
+    first_contact_name: "Lakshmi Menon",
+    first_contact_email: "lakshmi.menon.family@example.com",
+    first_contact_phone: "+91 98765 43211",
+    allergies: "No known drug allergies recorded.",
+    previous_results: "Post-op hemoglobin stable. Creatinine within expected range.",
+    prescriptions: "Ringer's Lactate at 80 ml/hr. Analgesics and antibiotics as charted.",
     room_number: "ICU-02",
     bed_number: "B2",
     ward_id: "10000000-0000-4000-8000-000000000001",
@@ -164,7 +198,18 @@ const patients: MockPatient[] = [
     id: "40000000-0000-4000-8000-000000000003",
     name: "Meera Iyer",
     mrn: "MRN-240003",
+    age: 37,
+    gender: "Female",
     diagnosis: "Pneumonia",
+    attending_doctor: "Dr. Sameer Mehta",
+    attending_doctor_email: "doctor@dripsense.local",
+    primary_nurse: "Nurse Lakshmi Menon",
+    first_contact_name: "Suresh Iyer",
+    first_contact_email: "suresh.iyer@example.com",
+    first_contact_phone: "+91 98765 43212",
+    allergies: "Sulfa sensitivity reported by family.",
+    previous_results: "Chest imaging showed lower-zone infiltrates. WBC and CRP elevated.",
+    prescriptions: "D5W at 110 ml/hr. Continue respiratory medication chart as ordered.",
     room_number: "ICU-03",
     bed_number: "B3",
     ward_id: "10000000-0000-4000-8000-000000000001",
@@ -187,7 +232,18 @@ const patients: MockPatient[] = [
     id: `40000000-0000-4000-8000-${String(index + 4).padStart(12, "0")}`,
     name: ["Rohan Sharma", "Kavya Nair", "Aditya Kulkarni", "Priya Reddy", "Vikram Singh", "Neha Joshi", "Saanvi Patel", "Aarav Deshmukh", "Fatima Khan"][index] ?? "Patient",
     mrn: `MRN-2400${index + 4}`.padEnd(10, "0"),
+    age: [75, 29, 61, 46, 82, 43, 57, 33, 70][index] ?? 50,
+    gender: ["Male", "Female", "Male", "Female", "Male", "Female", "Female", "Male", "Female"][index] ?? "Unknown",
     diagnosis: "Infusion monitoring",
+    attending_doctor: "Dr. Sameer Mehta",
+    attending_doctor_email: "doctor@dripsense.local",
+    primary_nurse: index < 4 ? "Nurse Lakshmi Menon" : "Nurse Asha Thomas",
+    first_contact_name: ["Nisha Sharma", "Arun Nair", "Sneha Kulkarni", "Kiran Reddy", "Amrita Singh", "Mohan Joshi", "Rakesh Patel", "Diya Deshmukh", "Imran Khan"][index] ?? "Emergency Contact",
+    first_contact_email: `contact${index + 4}@example.com`,
+    first_contact_phone: `+91 98765 432${index + 3}`,
+    allergies: index === 1 ? "NSAID intolerance recorded." : "No known drug allergies recorded.",
+    previous_results: "Previous vitals, CBC, renal profile, and infusion notes reviewed.",
+    prescriptions: "Continue current IV fluid at ordered rate. Follow medication administration record.",
     room_number: index < 4 ? `S-0${index + 4}` : `G-0${index + 4}`,
     bed_number: `B${index + 4}`,
     ward_id: index < 4 ? "10000000-0000-4000-8000-000000000002" : "10000000-0000-4000-8000-000000000003",
@@ -291,6 +347,88 @@ const findPatientForDevice = (deviceId: string) => {
   const device = devices.find((item) => item.id === deviceId || item.mac_address === deviceId);
   if (!device) return undefined;
   return patients.find((patient) => patient.bed_number === device.bed_number && patient.room_number === device.room_number);
+};
+
+const escapeHtml = (value: unknown) =>
+  String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
+const formatDate = (value: unknown) => {
+  if (!value) return "Not recorded";
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+};
+
+const safeFilename = (value: string) => value.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "patient";
+
+const mockReportSections = (patient: MockPatient): PdfSection[] => {
+  const patientTelemetry = telemetry.filter((point) => point.session_id === patient.session_id).slice(-30).reverse();
+  const patientAlerts = alerts.filter((alert) => alert.patient_id === patient.id).slice(0, 20);
+  const status = !patient.is_online ? "Device offline" : patient.bubble_alarm ? "Alarm active" : patient.dpm <= 20 ? "Needs attention" : "Stable";
+  return [
+    {
+      title: "Patient Summary",
+      rows: [
+        ["Patient", `${patient.name} (${patient.mrn})`],
+        ["Age / Gender", `${patient.age} / ${patient.gender}`],
+        ["Diagnosis", patient.diagnosis],
+        ["Location", `${patient.ward_name}, Room ${patient.room_number}, Bed ${patient.bed_number}`],
+        ["Status", status]
+      ]
+    },
+    {
+      title: "Contacts And Care Team",
+      rows: [
+        ["Assigned Doctor", `${patient.attending_doctor} <${patient.attending_doctor_email}>`],
+        ["Primary Nurse", patient.primary_nurse],
+        ["Patient First Contact", `${patient.first_contact_name} | ${patient.first_contact_phone} | ${patient.first_contact_email}`]
+      ]
+    },
+    {
+      title: "Clinical Details",
+      rows: [
+        ["Patient History", `Admitted for ${patient.diagnosis}. Active IV monitoring session linked to ESP32-CAM telemetry and alerts.`],
+        ["Allergies", patient.allergies],
+        ["Previous Hospital Results", patient.previous_results],
+        ["Prescriptions", patient.prescriptions]
+      ]
+    },
+    {
+      title: "Active Infusion",
+      rows: [
+        ["Fluid", patient.fluid_type],
+        ["Ordered Rate", `${patient.rate_ml_hr} ml/hr`],
+        ["Volume", `${patient.volume_ml} ml`],
+        ["Current DPM", patient.dpm.toFixed(1)],
+        ["Current Flow", `${patient.flow_rate_ml_hr.toFixed(1)} ml/hr`]
+      ]
+    },
+    {
+      title: "Device Snapshot",
+      rows: [
+        ["ESP32-CAM IP", patient.ip_address],
+        ["WiFi RSSI", `${patient.wifi_rssi} dBm`],
+        ["Battery", `${patient.battery_level}%`],
+        ["Last Telemetry", formatDate(patient.last_telemetry_at)]
+      ]
+    },
+    {
+      title: "Recent Telemetry",
+      rows: patientTelemetry.length
+        ? patientTelemetry.slice(0, 15).map((point, index) => [`Sample ${index + 1}`, `${formatDate(point.timestamp)} | DPM ${point.dpm.toFixed(1)} | Flow ${point.flow_rate_ml_hr.toFixed(1)} ml/hr | Alarm ${point.alarm_active ? "Yes" : "No"}`])
+        : [["Samples", "No telemetry received yet."]]
+    },
+    {
+      title: "Alert Timeline",
+      rows: patientAlerts.length
+        ? patientAlerts.map((alert, index) => [`Alert ${index + 1}`, `${formatDate(alert.triggered_at)} | ${alert.type.replaceAll("_", " ")} | ${alert.severity} | ${alert.message} | ${alert.is_resolved ? "Resolved" : alert.acknowledged_at ? "Acknowledged" : "Open"}`])
+        : [["Alerts", "No alerts recorded for this patient."]]
+    }
+  ];
 };
 
 io.on("connection", (socket) => {
@@ -465,10 +603,29 @@ app.get("/api/analytics/device-uptime", (_req, res) => res.json({ data: devices 
 app.get("/api/analytics/infusion-stats", (_req, res) => res.json({ data: [{ status: "COMPLETED", count: 72 }, { status: "INTERRUPTED", count: 8 }, { status: "ALARMED", count: 20 }] }));
 app.post("/api/reports/patient", (_req, res) => res.json({ reportId: "mock-report", status: "queued", format: "pdf" }));
 app.post("/api/reports/shift", (_req, res) => res.json({ reportId: "mock-shift", status: "queued", format: "pdf" }));
+app.get("/api/reports/patient/:id/download", (req, res) => {
+  const patient = patients.find((item) => item.id === req.params.id);
+  if (!patient) return res.status(404).json({ error: "Patient not found" });
+  const pdf = createPdfBuffer("Patient IV Monitoring Report", mockReportSections(patient));
+  res.setHeader("content-type", "application/pdf");
+  res.setHeader("content-disposition", `attachment; filename="${safeFilename(patient.name)}-iv-report.pdf"`);
+  return res.send(pdf);
+});
+app.post("/api/reports/patient/:id/send", (req, res) => {
+  const patient = patients.find((item) => item.id === req.params.id);
+  if (!patient) return res.status(404).json({ error: "Patient not found" });
+  const target = req.body?.target === "contact" ? "contact" : req.body?.target === "both" ? "both" : "doctor";
+  const recipients = [
+    ...(target === "doctor" || target === "both" ? [{ type: "doctor", name: patient.attending_doctor, destination: patient.attending_doctor_email }] : []),
+    ...(target === "contact" || target === "both" ? [{ type: "first_contact", name: patient.first_contact_name, destination: patient.first_contact_email }] : [])
+  ];
+  return res.json({ ok: true, status: "queued", reportId: randomUUID(), recipients });
+});
 app.get("/api/reports/export", (_req, res) => res.type("text/csv").send("type,severity,message\nAIR_BUBBLE,CRITICAL,Air bubble detected"));
 
 app.get("/stream", async (_req, res) => {
   const cameraUrl = `${esp32CamUrl}/stream`;
+  res.setHeader("Access-Control-Allow-Origin", "*");
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);

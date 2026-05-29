@@ -1,5 +1,6 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { Activity, AlertTriangle, BarChart3, Bed, FileText, Gauge, LogOut, Moon, Settings, Smartphone, Stethoscope } from "lucide-react";
+import { useEffect, useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Activity, AlertTriangle, BarChart3, FileText, Gauge, LogOut, Moon, Settings, Smartphone, Stethoscope, Sun } from "lucide-react";
 import { Button } from "../ui/Button";
 import { useAuthStore } from "../../store/auth";
 import { api } from "../../services/api";
@@ -18,9 +19,21 @@ const nav = [
 export const AppShell = () => {
   useSocket();
   const navigate = useNavigate();
+  const location = useLocation();
   const { staff, clearSession } = useAuthStore();
+  const [darkMode, setDarkMode] = useState(() => document.documentElement.classList.contains("dark") || localStorage.getItem("dripsense.theme") === "dark");
 
-  const toggleDark = () => document.documentElement.classList.toggle("dark");
+  const activeWard = new URLSearchParams(location.search).get("ward") ?? "All Wards";
+  const selectWard = (ward: string) => navigate(ward === "All Wards" ? "/dashboard" : `/dashboard?ward=${encodeURIComponent(ward)}`);
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", darkMode);
+  }, [darkMode]);
+  const toggleDark = () => {
+    const next = !darkMode;
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("dripsense.theme", next ? "dark" : "light");
+    setDarkMode(next);
+  };
   const logout = async () => {
     await api.logout().catch(() => undefined);
     clearSession();
@@ -37,11 +50,11 @@ export const AppShell = () => {
           </div>
           <div className="hidden gap-2 md:flex">
             {["All Wards", "ICU", "Surgical Ward", "General Ward"].map((ward) => (
-              <button className="focusable rounded-full px-3 py-1.5 text-sm text-medical-muted hover:bg-medical-blue-light hover:text-medical-blue dark:hover:bg-zinc-800" key={ward}>{ward}</button>
+              <button className={`focusable rounded-full px-3 py-1.5 text-sm ${activeWard === ward ? "bg-medical-blue-light font-semibold text-medical-blue dark:bg-zinc-800" : "text-medical-muted hover:bg-medical-blue-light hover:text-medical-blue dark:hover:bg-zinc-800"}`} key={ward} onClick={() => selectWard(ward)}>{ward}</button>
             ))}
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="ghost" onClick={toggleDark} aria-label="Toggle dark mode"><Moon className="h-4 w-4" /></Button>
+            <Button variant="ghost" onClick={toggleDark} aria-label="Toggle dark mode">{darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</Button>
             <div className="hidden text-right text-sm sm:block">
               <div className="font-semibold">{staff?.name ?? "Clinical User"}</div>
               <div className="text-xs text-medical-muted">{staff?.role ?? "NURSE"}</div>

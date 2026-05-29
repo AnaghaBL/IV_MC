@@ -37,9 +37,14 @@ export const PatientCard = ({ patient }: { patient: PatientCardRecord }) => {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className={`truncate text-sm font-semibold ${status === "DEVICE_OFFLINE" ? "line-through" : ""}`}>{patient.name}</h3>
-          <p className="truncate text-xs text-medical-muted">{patient.mrn} · Room {patient.room_number} / {patient.bed_number}</p>
+          <p className="truncate text-xs text-medical-muted">{patient.mrn} | Room {patient.room_number} / {patient.bed_number}</p>
         </div>
         <Badge tone={status === "CRITICAL" ? "red" : status === "AIR_BUBBLE" ? "purple" : status === "ATTENTION" ? "amber" : status === "REDUCED_FLOW" ? "orange" : status === "STABLE" ? "green" : "gray"}>{status.replace("_", " ")}</Badge>
+      </div>
+      <div className="mt-3 grid gap-1 rounded-md border border-medical-border bg-zinc-50 p-3 text-xs dark:border-zinc-800 dark:bg-zinc-950/60">
+        <div className="flex justify-between gap-3"><span className="text-medical-muted">Diagnosis</span><span className="truncate font-semibold">{patient.diagnosis}</span></div>
+        <div className="flex justify-between gap-3"><span className="text-medical-muted">Age / Sex</span><span className="font-semibold">{patient.age} / {patient.gender}</span></div>
+        <div className="flex justify-between gap-3"><span className="text-medical-muted">Doctor</span><span className="truncate font-semibold">{patient.attending_doctor ?? "Unassigned"}</span></div>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div>

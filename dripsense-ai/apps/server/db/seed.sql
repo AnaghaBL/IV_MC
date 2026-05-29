@@ -51,7 +51,7 @@ patients_seed as (
 devices_seed as (
   insert into devices (id, hospital_id, bed_id, device_type, mac_address, firmware_version, ip_address, wifi_rssi, battery_level, last_seen, calibration_data, is_online)
   values
-  ('50000000-0000-4000-8000-000000000001', (select id from hospital), '20000000-0000-4000-8000-000000000001', 'CAM_MODULE', 'ESP32-CAM-00-01', '1.4.2', '10.19.187.185', -52, 88, now() - interval '4 seconds', '{"frame":"CIF","jpegQuality":12}', true),
+  ('50000000-0000-4000-8000-000000000001', (select id from hospital), '20000000-0000-4000-8000-000000000001', 'CAM_MODULE', 'ESP32-CAM-00-01', '1.4.2', '10.173.4.185', -52, 88, now() - interval '4 seconds', '{"frame":"CIF","jpegQuality":12}', true),
   ('50000000-0000-4000-8000-000000000002', (select id from hospital), '20000000-0000-4000-8000-000000000001', 'BUBBLE_DETECTOR', 'ESP32-BUB-00-01', '1.2.0', '10.19.187.186', -55, 91, now() - interval '2 seconds', '{"emaAlpha":0.02,"threshold":0.85}', true),
   ('50000000-0000-4000-8000-000000000003', (select id from hospital), '20000000-0000-4000-8000-000000000002', 'CAM_MODULE', 'ESP32-CAM-00-02', '1.4.2', '10.19.187.187', -61, 72, now() - interval '15 seconds', '{"frame":"CIF","jpegQuality":12}', true),
   ('50000000-0000-4000-8000-000000000004', (select id from hospital), '20000000-0000-4000-8000-000000000002', 'BUBBLE_DETECTOR', 'ESP32-BUB-00-02', '1.2.0', '10.19.187.188', -63, 76, now() - interval '8 seconds', '{"emaAlpha":0.02,"threshold":0.85}', true),
